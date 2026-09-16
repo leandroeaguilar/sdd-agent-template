@@ -18,7 +18,10 @@ set -uo pipefail
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
 cd "$ROOT" 2>/dev/null || exit 0
+# Dos nombres de carpeta de metadatos porque el hook se comparte entre el
+# template de repos de código (.repo-meta/) y el de vaults (.vault-meta/).
 [ -f .repo-meta/sdd-gate.disabled ] && exit 0
+[ -f .vault-meta/sdd-gate.disabled ] && exit 0
 [ -f feature_list.json ] || exit 0   # repo sin SDD -> inerte
 
 PY="$(command -v python 2>/dev/null || command -v python3 2>/dev/null || true)"

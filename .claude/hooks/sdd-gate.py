@@ -47,11 +47,33 @@ MANIFEST = "feature_list.json"
 # Qué NO cuenta como "tocar código". Todo lo que caiga fuera de esta lista sí.
 # Allowlist en vez de una lista de extensiones de código: la plantilla es
 # agnóstica de stack y no sabe si el proyecto usa src/, app/, lib/ o cmd/.
+#
+# Son DEFAULTS, no constantes: el manifiesto puede redefinirlos con las claves
+# `doc_prefixes` / `doc_exact`. Hizo falta porque en un repo donde el producto
+# ES documentación —el template de vaults: `00 Sistema/**` es contenido y
+# `.claude/hooks/**` es la implementación— esta lista queda justo al revés, y
+# el gate sale inerte sobre lo único que importaba vigilar.
 DOC_PREFIXES = ("specs/", "docs/", ".github/", ".claude/", ".githooks/", ".repo-meta/")
 DOC_EXACT = {
     MANIFEST, "repo.conf", "setup.sh", "LICENSE",
     ".gitignore", ".gitattributes", ".env.example",
 }
+
+
+def doc_rules(data):
+    """(prefijos, exactos) del manifiesto, con los defaults de arriba si no los declara.
+
+    `MANIFEST` se agrega siempre: un repo que se deje afuera su propio manifiesto
+    de la lista de documentación convertiría cada aprobación en "tocar código", y
+    el gate se dispararía contra el commit que existe para desbloquearlo.
+    """
+    prefijos = data.get("doc_prefixes")
+    exactos = data.get("doc_exact")
+    if not isinstance(prefijos, list) or not all(isinstance(p, str) for p in prefijos):
+        prefijos = list(DOC_PREFIXES)
+    if not isinstance(exactos, list) or not all(isinstance(p, str) for p in exactos):
+        exactos = list(DOC_EXACT)
+    return tuple(prefijos), set(exactos) | {MANIFEST}
 
 
 def run(args):
@@ -73,9 +95,9 @@ def changed_files(range_base=None, range_head="HEAD"):
     return [l.strip() for l in run(args).splitlines() if l.strip()]
 
 
-def is_code(path):
+def is_code(path, prefijos=DOC_PREFIXES, exactos=DOC_EXACT):
     p = path.replace("\\", "/")
-    if p in DOC_EXACT or p.startswith(DOC_PREFIXES):
+    if p in exactos or p.startswith(prefijos):
         return False
     # Markdown suelto en la raíz (README, AGENTS, CLAUDE, COMO-TRABAJAMOS…).
     if "/" not in p and p.lower().endswith(".md"):
@@ -137,7 +159,8 @@ def main():
     changed = changed_files(range_base, range_head)
     if not changed:
         return 0
-    code_touched = [p for p in changed if is_code(p)]
+    doc_prefijos, doc_exactos = doc_rules(data)
+    code_touched = [p for p in changed if is_code(p, doc_prefijos, doc_exactos)]
     manifest_touched = MANIFEST in [p.replace("\\", "/") for p in changed]
 
     def named(f):
@@ -268,8 +291,9 @@ def main():
         print("   Se corrige en el repo (estado del manifiesto o alcance del cambio),", file=out)
         print("   no acá: este paso informa, no bloquea el PR.", file=out)
     else:
+        meta = ".vault-meta" if os.path.isdir(".vault-meta") else ".repo-meta"
         print("   (Excepción puntual: git commit --no-verify.", file=out)
-        print("    Kill-switch: .repo-meta/sdd-gate.disabled)", file=out)
+        print("    Kill-switch: %s/sdd-gate.disabled)" % meta, file=out)
     return 1
 
 

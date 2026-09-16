@@ -172,12 +172,70 @@ spec_dir "001-pagos"
 echo "x" > src/app.js; git add -A 2>/dev/null
 check "regla en false → no se aplica" 0
 
+# ── Allowlist redefinida por el manifiesto ───────────────────────────────────
+# El caso real: un repo donde el producto ES documentación (el template de
+# vaults). Ahí `.claude/hooks/**` es la implementación y `00 Sistema/**` es
+# contenido — al revés que los defaults. Sin esto el gate salía inerte justo
+# sobre los archivos que había que vigilar.
+manifest_doc() { # $1 = features, $2 = doc_prefixes, $3 = doc_exact
+  cat > feature_list.json <<EOF
+{ "project": "test", "rules": {},
+  "doc_prefixes": $2,
+  "doc_exact": $3,
+  "features": $1 }
+EOF
+  "$PY" -c "import json; json.load(open('feature_list.json'))" 2>/dev/null \
+    || { echo "  ⛔ BANCO ROTO: feature_list.json inválido"; exit 1; }
+}
+
+reset_repo
+manifest_doc '[{"id":1,"name":"001-entidad","sdd":true,"status":"spec_ready"}]' \
+             '["specs/", "00 Sistema/"]' '["LICENSE"]'
+spec_dir "001-entidad"
+mkdir -p ".claude/hooks"; echo "x" > ".claude/hooks/entity-scaffold.py"
+# Staging dirigido, no `-A`: reset_repo deja el propio gate en .claude/hooks/, y
+# con esta allowlist esos archivos también son código — ensuciarían el caso.
+git add ".claude/hooks/entity-scaffold.py" 2>/dev/null
+check "allowlist invertida: .claude/hooks es código → BLOQUEA" 1
+
+reset_repo
+manifest_doc '[{"id":1,"name":"001-entidad","sdd":true,"status":"spec_ready"}]' \
+             '["specs/", "00 Sistema/"]' '["LICENSE"]'
+spec_dir "001-entidad"
+mkdir -p "00 Sistema"; echo "x" > "00 Sistema/SOP Git.md"
+git add "00 Sistema/SOP Git.md" 2>/dev/null
+check "allowlist invertida: 00 Sistema es documentación → pasa" 0
+
+# El manifiesto entra siempre en la lista de documentación, lo declare o no:
+# si no, el commit que aprueba una spec contaría como "tocar código" y el gate
+# se dispararía contra el commit que existe para desbloquearlo.
+reset_repo
+manifest_doc '[{"id":1,"name":"001-entidad","sdd":true,"status":"spec_ready"}]' \
+             '["specs/"]' '["LICENSE"]'
+spec_dir "001-entidad"
+git add feature_list.json 2>/dev/null
+check "el manifiesto nunca cuenta como código → pasa" 0
+
+# Una lista mal tipeada no puede dejar el repo sin gate en silencio.
+reset_repo
+manifest_doc '[{"id":1,"name":"001-entidad","sdd":true,"status":"spec_ready"}]' \
+             '"specs/"' '{}'
+spec_dir "001-entidad"
+echo "x" > src/app.js; git add -A 2>/dev/null
+check "doc_prefixes con tipo inválido → cae a los defaults" 1
+
 # ── Salidas de emergencia y fail-open ────────────────────────────────────────
 reset_repo
 manifest '[{"id":1,"name":"001-pagos","sdd":true,"status":"spec_ready"}]'
 spec_dir "001-pagos"; mkdir -p .repo-meta; touch .repo-meta/sdd-gate.disabled
 echo "x" > src/app.js; git add -A 2>/dev/null
 check "kill-switch → pasa" 0
+
+reset_repo
+manifest '[{"id":1,"name":"001-pagos","sdd":true,"status":"spec_ready"}]'
+spec_dir "001-pagos"; mkdir -p .vault-meta; touch .vault-meta/sdd-gate.disabled
+echo "x" > src/app.js; git add -A 2>/dev/null
+check "kill-switch en .vault-meta → pasa" 0
 
 reset_repo
 echo '{ roto' > feature_list.json
