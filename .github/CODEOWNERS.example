@@ -29,7 +29,7 @@
 # /src/ui/              @frontend-owner
 # /migrations/          @dueño-del-repo @backend-owner
 
-# ── Producto: se decide en el vault, acá solo se re-exporta ──────────────────
+# ── Producto: lo decide el dueño, no se cambia de pasada en un PR de código ──
 /docs/product/          @dueño-del-repo
 
 # ── Archivos-ley y seguridad: SIEMPRE revisados por el dueño ────────────────

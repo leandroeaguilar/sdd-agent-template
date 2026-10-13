@@ -205,9 +205,9 @@ echo "x" > src/app.js; git add -A 2>/dev/null
 check "regla en false → no se aplica" 0
 
 # ── Allowlist redefinida por el manifiesto ───────────────────────────────────
-# El caso real: un repo donde el producto ES documentación (el template de
-# vaults). Ahí `.claude/hooks/**` es la implementación y `00 Sistema/**` es
-# contenido — al revés que los defaults. Sin esto el gate salía inerte justo
+# El caso real: un repo donde el producto ES documentación. Ahí
+# `.claude/hooks/**` es la implementación y `00 Sistema/**` es contenido — al
+# revés que los defaults. Sin esto el gate salía inerte justo
 # sobre los archivos que había que vigilar.
 manifest_doc() { # $1 = features, $2 = doc_prefixes, $3 = doc_exact
   cat > feature_list.json <<EOF

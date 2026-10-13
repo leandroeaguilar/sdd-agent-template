@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-security-guard.py — guardián de seguridad del vault (capa 2, PreToolUse Bash|Read).
+security-guard.py — guardián de seguridad del repo (capa 2, PreToolUse Bash|Read).
 
 Lo invoca el wrapper security-guard.sh. Escanea el comando/ruta ENTERO y bloquea
 un set ACOTADO de patrones inequívocamente peligrosos, atajando evasiones que el
-`deny` por-prefijo de settings.local.json no ve (curl embebido, `cat .env`,
-force-push a media línea, redirect a config). Ver [[SOP de Seguridad]] §2.
+`deny` por-prefijo de settings.json no ve (curl embebido, `cat .env`,
+force-push a media línea, redirect a config). Ver AGENTS.md §Seguridad.
 
 Contrato con Claude Code:
   - exit 0  -> permite la herramienta.
@@ -66,19 +66,20 @@ DISABLE_TROJAN = "  (Si es un falso positivo puntual, desactivá el guard: crear
 def check_bash(cmd):
     if NETWORK_OUT.search(cmd) or NETCAT.search(cmd):
         block("[SECURITY-GUARD] Salida de red por shell (curl/wget/nc/telnet) bloqueada. "
-              "El canal sancionado del vault es WebFetch/WebSearch (o PowerShell Invoke-RestMethod "
-              "para APIs). Exfiltrar por shell rompe la tríada letal — ver [[SOP de Seguridad]] §4." + DISABLE_TROJAN)
+              "El canal sancionado del repo es WebFetch/WebSearch (o PowerShell Invoke-RestMethod "
+              "para APIs): un agente con datos privados, contenido no confiable y salida de red "
+              "libre puede exfiltrar. Ver AGENTS.md, Seguridad." + DISABLE_TROJAN)
     if READER.search(cmd) and SECRET_PATH.search(cmd) and not SAFE_SUFFIX.search(cmd):
         block("[SECURITY-GUARD] Acceso a un archivo de secretos/credenciales por shell bloqueado "
               "(.env / id_rsa / .pem / credentials.json / .ssh / .aws). Los secretos no se leen "
-              "ni copian por shell. Ver [[SOP de Seguridad]] §5." + DISABLE_TROJAN)
+              "ni copian por shell. Ver AGENTS.md, Seguridad." + DISABLE_TROJAN)
     if FORCE_PUSH.search(cmd):
         block("[SECURITY-GUARD] `git push --force/-f` bloqueado: reescribir historia remota es "
               "destructivo. Usá un push normal, o pedíselo al dueño del repo explícitamente." + DISABLE_TROJAN)
     if CONTROL_WRITE.search(cmd):
         block("[SECURITY-GUARD] Escritura por shell a un archivo de control (.claude/ .githooks/ "
               ".mcp.json) bloqueada: la config se edita con la herramienta Edit, no por redirect. "
-              "Ver [[SOP de Seguridad]] §2." + DISABLE_TROJAN)
+              "Ver AGENTS.md, Seguridad." + DISABLE_TROJAN)
     allow()
 
 def main():
@@ -92,7 +93,7 @@ def main():
         fp = ti.get('file_path') or ''
         if SECRET_PATH.search(fp) and not SAFE_SUFFIX.search(fp):
             block("[SECURITY-GUARD] Lectura de un archivo de secretos/credenciales bloqueada «%s». "
-                  "Refuerza el `deny` de Read. Ver [[SOP de Seguridad]] §5." % fp + DISABLE_TROJAN)
+                  "Refuerza el `deny` de Read. Ver AGENTS.md, Seguridad." % fp + DISABLE_TROJAN)
         allow()
 
     if tool == 'Bash':

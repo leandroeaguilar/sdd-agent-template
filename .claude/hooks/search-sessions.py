@@ -1,39 +1,33 @@
 #!/usr/bin/env python3
 """search-sessions.py — buscador sobre los transcripts de sesiones pasadas.
 
-EL PROBLEMA QUE RESUELVE: `pre-compact.sh` viene guardando conversaciones enteras
-en `.vault-meta/session-logs/*.jsonl` y **nunca las consultó nadie**. El dato
-estaba y el buscador no. El Agent Diary tampoco lo cubre: `session-context.sh`
-inyecta SOLO la última entrada, y la bitácora es un resumen escrito a mano — sirve
-para el handoff, no para "¿qué decidimos exactamente sobre X hace tres semanas?".
+EL PROBLEMA QUE RESUELVE: las conversaciones enteras con el agente quedan en
+disco y nadie las consulta. El dato está y el buscador no. La bitácora tampoco lo
+cubre: es un resumen escrito a mano — sirve para el handoff, no para "¿qué
+decidimos exactamente sobre X hace tres semanas?".
 
 QUÉ ES Y QUÉ NO ES:
   - ES: grep con estructura. Sabe qué es un turno, de quién, cuándo, y sabe que
     dos archivos pueden ser dos fotos de la MISMA sesión (dedupe por sessionId).
-  - NO ES: búsqueda semántica. Busca por palabra, igual que el `bibliotecario`.
-    Si algún día entra el RAG del Roadmap, este es el corpus obvio a indexar.
+  - NO ES: búsqueda semántica. Busca por palabra.
 
-Se eligió escaneo directo en vez de un índice (SQLite FTS5, que es lo que usa
-Hermes) porque el corpus son unos pocos MB y el escaneo tarda menos que mantener
-el índice sincronizado. La regla del vault es "simplicidad antes que complejidad";
-si el corpus crece a cientos de sesiones, acá es donde entra FTS5.
+Se eligió escaneo directo en vez de un índice (SQLite FTS5) porque el corpus son
+unos pocos MB y el escaneo tarda menos que mantener el índice sincronizado. Si el
+corpus crece a cientos de sesiones, acá es donde entra FTS5.
 
 DOS FUENTES, Y EL PORQUÉ DE CADA UNA:
 
-  1. LOCAL — `.vault-meta/session-logs/` (o `.repo-meta/` en repos de código), que
-     llena `pre-compact.sh`. Es **nuestra**: nosotros controlamos la ruta, el
-     formato y la retención, y no depende de qué harness se use. Pero solo captura
-     **al compactar**, así que una sesión que nunca compactó no deja rastro.
+  1. LOCAL — `.repo-meta/session-logs/`, si el repo agrega un hook que guarde
+     los transcripts ahí (esta plantilla no lo trae). Es **propia**: el repo
+     controla la ruta, el formato y la retención, y no depende de qué harness se
+     use. Pero solo tiene lo que ese hook capture.
   2. HARNESS — `~/.claude/projects/<proyecto>/`, donde Claude Code guarda **todas**
      las sesiones por su cuenta, una por archivo, sin que nadie configure nada.
      Mismo formato JSONL. Es la fuente completa.
 
-La diferencia no es teórica: medido el 2026-08-08 en el vault, la local tenía **2**
-sesiones y la del harness **52**.
-
 Se leen LAS DOS y se deduplica por `sessionId`. Por qué no solo la del harness, que
 es la completa: es una ruta **interna y no documentada** del harness, específica de
-Claude Code — puede cambiar de versión y no existe en Codex/Hermes. La local es el
+Claude Code — puede cambiar de versión y no existe en otros agentes. La local es el
 ancla portable. Si la del harness desaparece, esto sigue funcionando con menos
 corpus en vez de romperse.
 
@@ -43,8 +37,8 @@ exactamente qué hay: usalo antes de concluir que algo "no existe".
 
 Uso:
   python search-sessions.py --list              # inventario: qué sesiones hay
-  python search-sessions.py "graphify"          # buscar en todo
-  python search-sessions.py "OKF" --role user   # solo lo que pidió el humano
+  python search-sessions.py "migracion"         # buscar en todo
+  python search-sessions.py "login" --role user # solo lo que pidió el humano
   python search-sessions.py "verif.*commit" --regex --full
   CLAUDE_PROJECTS_DIR=/otra/ruta python search-sessions.py --list   # override
 """
@@ -67,9 +61,9 @@ ROOT = Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))
 
 
 def local_dirs():
-    """Los backups que deja `pre-compact.sh`. Se aceptan los dos nombres para que
-    este script sea UNO SOLO y sirva igual en el vault (`.vault-meta/`) y en un
-    repo de código (`.repo-meta/`) — dos copias divergirían con el tiempo."""
+    """Transcripts guardados por el propio repo, si algún hook los deja. Se
+    aceptan los dos nombres de carpeta de metadatos (`.repo-meta/` y
+    `.vault-meta/`) porque este script se comparte con otra plantilla."""
     return [d for d in (ROOT / ".vault-meta" / "session-logs",
                         ROOT / ".repo-meta" / "session-logs") if d.is_dir()]
 
@@ -78,7 +72,7 @@ def harness_dir():
     """Dónde Claude Code guarda las sesiones de ESTE proyecto.
 
     El nombre de la carpeta es la ruta absoluta con ':' y separadores vueltos '-'
-    (C:\\Users\\x\\vault → C--Users-x-vault). Como es una convención interna del
+    (C:\\Users\\x\\repo → C--Users-x-repo). Como es una convención interna del
     harness y no un contrato, no se confía solo en armar el nombre: si no está, se
     buscan todas las carpetas de proyecto y se elige la que declare este mismo
     `cwd` adentro. Si tampoco, se devuelve None y el buscador sigue con la local."""
@@ -219,7 +213,7 @@ def snippet(text: str, span, width: int) -> str:
 
 def main():
     p = argparse.ArgumentParser(
-        description="Busca en los transcripts de sesiones pasadas del vault.")
+        description="Busca en los transcripts de sesiones pasadas de este repo.")
     p.add_argument("query", nargs="?", help="texto a buscar (sin acentos, da igual)")
     p.add_argument("--list", action="store_true", help="inventario de sesiones guardadas")
     p.add_argument("--regex", action="store_true", help="tratar la consulta como regex")

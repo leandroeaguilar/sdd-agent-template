@@ -5,10 +5,10 @@
 # security-guard.py (parseo robusto del JSON de stdin). El .py decide exit 0
 # (permitir) o exit 2 (bloquear, con motivo en stderr).
 #
-# Complementa el `deny` de settings.local.json (capa 1): la allowlist matchea
+# Complementa el `deny` de settings.json (capa 1): la allowlist matchea
 # por PREFIJO del comando; este hook escanea el comando ENTERO y ataja evasiones
 # (curl embebido, `cat .env`, force-push a media línea, redirects a config).
-# Ver [[SOP de Seguridad]] §2 y [[Anatomía de los hooks del vault]].
+# Ver AGENTS.md §Seguridad.
 #
 # FAIL-OPEN: si no hay python, no bloquea (permite) — la capa 1 (permisos) sigue
 # vigente igual. Kill-switch: .repo-meta/security-guard.disabled

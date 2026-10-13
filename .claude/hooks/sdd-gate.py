@@ -50,8 +50,8 @@ MANIFEST = "feature_list.json"
 #
 # Son DEFAULTS, no constantes: el manifiesto puede redefinirlos con las claves
 # `doc_prefixes` / `doc_exact`. Hizo falta porque en un repo donde el producto
-# ES documentación —el template de vaults: `00 Sistema/**` es contenido y
-# `.claude/hooks/**` es la implementación— esta lista queda justo al revés, y
+# ES documentación —los `.md` son el contenido y `.claude/hooks/**` es la
+# implementación— esta lista queda justo al revés, y
 # el gate sale inerte sobre lo único que importaba vigilar.
 DOC_PREFIXES = ("specs/", "docs/", ".github/", ".claude/", ".githooks/", ".repo-meta/")
 DOC_EXACT = {

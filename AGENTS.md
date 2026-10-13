@@ -26,7 +26,7 @@
 ## Dónde está el contexto y Flujo SDD
 
 - `feature_list.json` — Manifiesto de features con estado (`pending` / `spec_ready` / `in_progress` / `done` / `blocked`). Punto de entrada para saber qué construir.
-- `docs/product/` — PRD y decisiones de producto (snapshot exportado del vault dueño; **no editarlo acá** — los cambios de producto se deciden en el vault y se re-exportan).
+- `docs/product/` — PRD y decisiones de producto: el QUÉ y el PARA QUIÉN. **Un agente no lo edita por su cuenta** — si construyendo aparece un cambio de producto, se propone al humano.
 - `specs/<feature>/` — Trinidad Kiro-style: `spec.md` (el QUÉ con requisitos EARS `R1..Rn`) → `plan.md` (el CÓMO técnico) → `tasks.md` (pasos `T1..Tn` con tests asociados y evidencia `_Hecho:_`/`_Pendiente:_`). Una feature grande se parte en **fases** declaradas en `plan.md`, con un `tasks-faseN.md` por fase en lugar de `tasks.md`.
 - **La estructura de tareas de este repo es `specs/`, y manda.** Si una skill, un prompt o un flujo externo propone otra carpeta o formato para planificar trabajo (`odd/`, `tasks/`, `.plan/`…), adaptalo a `specs/<feature>/` y a `feature_list.json`: lo que se planifica fuera de ahí no pasa por la puerta de aprobación ni lo ve el gate.
 - `.claude/agents/` — Subagentes especializados: `@implementer` (ejecución quirúrgica en contexto limpio) y `@reviewer` (auditor adversarial que valida la trazabilidad `R<n>` ↔ test).

@@ -1,4 +1,4 @@
-# Normalización de fin de línea (lección del vault Sistema Maestro):
+# Normalización de fin de línea:
 # los hooks son bash y DEBEN conservar LF siempre — con CRLF, el shebang
 # y los `\r` finales rompen la ejecución en Git Bash (Windows).
 * text=auto

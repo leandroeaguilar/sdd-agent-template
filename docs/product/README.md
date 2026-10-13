@@ -1,7 +1,7 @@
 # docs/product/ — contexto de producto
 
-Acá vive el **snapshot exportado del vault dueño**: PRD, MVP, decisiones de producto.
+Acá vive lo que define el producto: PRD, alcance del MVP, decisiones de producto. Es el QUÉ y el PARA QUIÉN; el CÓMO técnico va en `specs/` y `docs/adr/`.
 
-- Cada archivo arranca con: `> Snapshot del vault [nombre], exportado YYYY-MM-DD.`
-- **No se edita acá.** Un cambio de producto se decide en el vault y se re-exporta (reemplazando el snapshot, con fecha nueva).
-- Si algo de acá contradice al código, gana el código en lo técnico y el vault en la intención — y hay que re-sincronizar.
+- **Si el producto se piensa en otra herramienta** (un documento compartido, una wiki, un gestor de notas), acá va una copia fechada: cada archivo arranca con `> Copia de [origen], exportada YYYY-MM-DD.` y se reemplaza entera al actualizarla.
+- **Un agente no lo edita por su cuenta.** Un cambio de producto es una decisión del humano: el agente lo propone, no lo escribe.
+- Si algo de acá contradice al código, gana el código en lo técnico y este documento en la intención — y hay que volver a alinearlos.

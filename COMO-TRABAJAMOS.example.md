@@ -37,7 +37,7 @@ git log -1 --format='%ae'      # confirmá qué correo quedó
 
 > Si tu correo no está **verificado** en GitHub (Settings → Emails), tus cambios aparecen sin tu nombre ni tu foto, y corregirlo después obliga a reescribir historial compartido. Hacelo **antes** del primer commit.
 
-> ⚠️ **Si hay más de un repo del mismo proyecto** (por ejemplo un vault y este), van en carpetas **hermanas, nunca anidadas**: un repo dentro de otro se lo traga el de arriba.
+> ⚠️ **Si hay más de un repo del mismo proyecto** (por ejemplo uno de documentación y este), van en carpetas **hermanas, nunca anidadas**: un repo dentro de otro se lo traga el de arriba.
 
 ## 2. El ritual de cada sesión
 
@@ -132,4 +132,4 @@ Ninguna de estas situaciones es un problema si se avisa temprano. Todas lo son s
 
 ---
 
-**El detalle técnico** está en `AGENTS.md`. Si el repo pertenece a un vault del Sistema Maestro, la referencia completa es `SOP Git y Flujo de Trabajo` §11–§12 y `SOP Proyectos de Código` §6.1.
+**El detalle técnico** está en `AGENTS.md`.

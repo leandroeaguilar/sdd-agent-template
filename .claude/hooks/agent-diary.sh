@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop hook — Agent Diary (adaptación para repos de código del hook del vault Sistema Maestro).
+# Stop hook — Agent Diary.
 # Si la sesión editó archivos, hace que el agente registre su handoff en docs/BITACORA.md
 # ANTES de terminar (contexto para la próxima sesión).
 #
@@ -47,8 +47,8 @@ DAY="$(date +%Y-%m-%d)"
 BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr -cd 'A-Za-z0-9._/-' | head -c 60)"
 [ -n "$BRANCH" ] || BRANCH="sin-rama"
 
-# Tope de consolidación: docs/BITACORA.md no rota (a diferencia del vault, que
-# corta por mes) y encima recibe entradas de varias ramas por merge=union, así que
+# Tope de consolidación: docs/BITACORA.md no rota (es un archivo único, sin
+# corte por mes) y encima recibe entradas de varias ramas por merge=union, así que
 # sin techo crece toda la vida del proyecto. Si se pasó, el aviso suma la
 # instrucción de PROPONER una consolidación — este es el único momento en que el
 # agente ya está con la bitácora en la mano.

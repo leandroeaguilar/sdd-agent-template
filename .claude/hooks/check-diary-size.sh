@@ -2,10 +2,10 @@
 # check-diary-size.sh — tope de consolidación de docs/BITACORA.md.
 #
 # EL PROBLEMA: la bitácora está acotada al LEER (un agente que entra mira las
-# últimas entradas) pero es infinita al ESCRIBIR. Y acá es **peor que en el vault
-# del sistema**, por dos motivos propios de un repo de código:
+# últimas entradas) pero es infinita al ESCRIBIR, por dos motivos propios de un
+# repo de código:
 #
-#   1. NO ROTA. El vault corta por mes (`YYYY-MM.md`); esto es UN archivo único
+#   1. NO ROTA. No se corta por mes (`YYYY-MM.md`); es UN archivo único
 #      que acumula toda la vida del proyecto. No hay ningún corte natural.
 #   2. `merge=union`. Varios agentes en worktrees y varias personas en ramas
 #      escriben en paralelo y sus entradas se INTERCALAN al mergear. El archivo
@@ -36,8 +36,8 @@ cd "$ROOT" 2>/dev/null || { [ "${1:-}" = "--level" ] && echo "OK"; exit 0; }
 
 FILE="docs/BITACORA.md"
 
-# Umbrales más bajos que los del vault, justamente porque acá el archivo no rota:
-# lo que allá es "un mes de trabajo" acá es "todo el proyecto hasta hoy".
+# Umbrales bajos a propósito, porque el archivo no rota: lo que mide no es
+# "un mes de trabajo" sino "todo el proyecto hasta hoy".
 SOFT_CHARS="${DIARY_SOFT_CHARS:-60000}"
 HARD_CHARS="${DIARY_HARD_CHARS:-120000}"
 SOFT_ENTRIES="${DIARY_SOFT_ENTRIES:-25}"

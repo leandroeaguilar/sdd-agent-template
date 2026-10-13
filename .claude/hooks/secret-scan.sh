@@ -3,7 +3,6 @@
 #
 # Best practice de cadena de suministro (git-secrets/gitleaks): frenar el secreto
 # en el commit es mejor que detectarlo después (una vez en el historial ya "se filtró").
-# Complementa a security-audit.sh (que audita lo YA committeado, periódico).
 #
 # Lo invoca .githooks/pre-commit. Exit != 0 => aborta el commit.
 # FAIL-OPEN ante error propio (no rompe commits); FAIL-CLOSED ante detección (bloquea).

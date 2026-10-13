@@ -1,5 +1,5 @@
 {
-  "_comment": "Settings del proyecto (plantilla-repo-codigo): baseline de seguridad + bitacora de agentes. Lo personal/local (allowlist propia, additionalDirectories al vault) va en settings.local.json (gitignoreado), nunca aca.",
+  "_comment": "Settings del proyecto: baseline de seguridad + bitacora de agentes. Lo personal/local (allowlist propia, additionalDirectories de tu maquina) va en settings.local.json (gitignoreado), nunca aca.",
   "permissions": {
     "deny": [
       "Read(../**)",

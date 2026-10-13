@@ -19,10 +19,10 @@ Requisitos: Git Bash (Windows) y Python para los hooks de seguridad; [+ los del 
 
 - `src/` — el código
 - `specs/` — specs por feature (qué → cómo → tareas)
-- `docs/product/` — PRD y decisiones de producto (snapshot del vault dueño)
+- `docs/product/` — PRD y decisiones de producto
 - `docs/adr/` — decisiones técnicas
 - `docs/BITACORA.md` — handoffs entre sesiones de agente
 
 ## Trabajar con agentes
 
-La ley del repo está en `AGENTS.md` (Claude Code la lee vía `CLAUDE.md`). Config **personal/local** (no committeada) en `.claude/settings.local.json`: allowlist propia de permisos y, si sos el operador dueño del vault, `additionalDirectories` para consultas ad-hoc al vault de la misma esfera — el repo nunca la requiere para funcionar.
+La ley del repo está en `AGENTS.md` (Claude Code la lee vía `CLAUDE.md`). Config **personal/local** (no committeada) en `.claude/settings.local.json`: allowlist propia de permisos y carpetas adicionales de tu máquina — el repo nunca la requiere para funcionar.

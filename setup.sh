@@ -8,7 +8,7 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
-echo "== Setup plantilla-repo-codigo =="
+echo "== Setup del repo =="
 
 # 0. Modo del repo (compartido, versionado en repo.conf)
 # Se PARSEA, no se sourcea: repo.conf es un archivo versionado, y sourcearlo
@@ -113,4 +113,4 @@ if [ "$REPO_MODE" = "equipo" ]; then
 fi
 
 echo ""
-echo "== Listo. Siguiente: completar AGENTS.md y exportar el PRD a docs/product/ (ver README) =="
+echo "== Listo. Siguiente: completar AGENTS.md y escribir el PRD en docs/product/ (ver README) =="
