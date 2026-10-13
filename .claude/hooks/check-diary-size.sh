@@ -49,7 +49,10 @@ if [ -f .repo-meta/diary-cap.disabled ] || [ ! -f "$FILE" ]; then
 fi
 
 CHARS="$(wc -c < "$FILE" 2>/dev/null | tr -d ' ')"; CHARS="${CHARS:-0}"
-ENTRIES="$(grep -cE '^#{2,3} 20[0-9][0-9]-[0-9]' "$FILE" 2>/dev/null || echo 0)"; ENTRIES="${ENTRIES:-0}"
+# Sin `|| echo 0`: con cero coincidencias `grep -c` ya imprime "0" y además sale
+# con 1, así que el `||` agregaba un segundo "0" y la comparación reventaba —
+# justo en una bitácora recién nacida, que es como llega a todo repo derivado.
+ENTRIES="$(grep -cE '^#{2,3} 20[0-9][0-9]-[0-9]' "$FILE" 2>/dev/null)"; ENTRIES="${ENTRIES:-0}"
 
 if [ "$CHARS" -gt "$HARD_CHARS" ] || [ "$ENTRIES" -gt "$HARD_ENTRIES" ]; then
   LEVEL="HARD"
