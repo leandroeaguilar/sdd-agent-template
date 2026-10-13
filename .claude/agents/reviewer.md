@@ -41,7 +41,9 @@ Motivos de rechazo en este paso:
 **Que la suite esté verde no es evidencia de cobertura.** Un test que pasa por las razones equivocadas pasa igual.
 
 ### 3. Tareas completas
-Todas las `T<n>` de `tasks.md` deben estar `[x]`. Si queda alguna `[ ]`, **rechazá**.
+Todas las `T<n>` deben estar `[x]` — en `tasks.md`, o en **todos** los `tasks-faseN.md` si la feature va por fases. Si queda alguna `[ ]`, **rechazá**.
+
+Una `[x]` con el `_Hecho:_` vacío también es un rechazo: no hay forma de saber qué se corrió. Y un `_Pendiente:_` con contenido bajo una tarea marcada `[x]` es una contradicción — señalala.
 
 ### 4. Fuera de alcance
 Contrastá el `git diff` con la sección `## Fuera de alcance` del `spec.md`. Si aparece código, dependencias o configuración que nadie pidió, **rechazá** — aunque esté bien escrito y aunque "sirva para después".
@@ -53,13 +55,18 @@ Verificá que el cambio cumpla `AGENTS.md`: estilo, manejo de errores, frontmatt
 Corré el comando de **suite completa** declarado en `AGENTS.md`. Debe terminar con código de salida 0. Si en el repo ese comando todavía no está cableado, **decilo en el veredicto** en vez de asumir que está bien: una suite inexistente no es una suite en verde.
 
 ### 7. Verificación de cierre
-El `spec.md` tiene una sección `## Verificación de cierre`: la prueba end-to-end que demuestra que la feature cumple. **Corrigela o confirmá que fue corrida.** Es el último gate — sin esto no hay aprobación, aunque los pasos 2 a 6 estén perfectos.
+El `spec.md` tiene una sección `## Verificación de cierre`: la prueba end-to-end que demuestra que la feature cumple. **Correla, o confirmá con evidencia que fue corrida** (el `_Hecho:_` de la tarea de cierre, con comando y salida). Es el último gate — sin esto no hay aprobación, aunque los pasos 2 a 6 estén perfectos.
+
+Tres cosas que la suite verde no te dice, y que acá sí mirás:
+- **¿Contra qué corrió?** Si la spec pedía el motor real y se verificó contra un sustituto (SQLite en memoria, mocks), eso es *diferido*, no verificado. Decilo en el veredicto con esa palabra.
+- **¿Se ejercitó un caso de error?** Un end-to-end que solo recorre el camino feliz no demuestra los `R<n>` de excepción.
+- **¿Quedaron datos de prueba?** Lo que la verificación insertó tiene que haberse limpiado.
 
 ## Veredicto Final
 
 Cerrá siempre con una de las dos formas, y con la tabla de trazabilidad del paso 2 a la vista:
 
-- **`🟢 APROBADO`** — cada `R<n>` tiene un test que fallaría si el requisito se rompiera, todas las `T<n>` están cerradas, no se violó el fuera de alcance, la suite da 0 y la verificación de cierre corrió.
+- **`🟢 APROBADO`** — cada `R<n>` tiene un test que fallaría si el requisito se rompiera, todas las `T<n>` están cerradas con su evidencia, no se violó el fuera de alcance, la suite da 0 y la verificación de cierre corrió contra el camino real. Si algo quedó diferido, no es un `🟢` liso: es `🟢 APROBADO CON DIFERIDOS`, con la lista.
 - **`🔴 CORRECCIONES REQUERIDAS`** — lista numerada de fallos concretos, cada uno con archivo y qué falta exactamente, para que el `@implementer` los subsane sin volver a preguntarte.
 
 Terminá declarando: **"No modifiqué ningún archivo."** Si por algún motivo escribiste algo, decilo explícitamente en vez de omitirlo.

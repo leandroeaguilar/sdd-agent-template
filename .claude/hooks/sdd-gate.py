@@ -24,7 +24,7 @@ Dos modos (mismos chequeos), igual que secret-scan.sh:
   --range <BASE> [HEAD]  → lo que cambió entre dos refs. Modo de CI: en un PR
                            no hay nada staged. Ver .github/workflows/verify.yml
 
-Lee `feature_list.json` y los `tasks.md` del árbol de trabajo (no del index):
+Lee `feature_list.json` y los `tasks*.md` del árbol de trabajo (no del index):
 es lo que ven el humano y el agente cuando miran el repo.
 """
 import json
@@ -117,16 +117,28 @@ def previous_manifest(ref):
 
 
 def unchecked_tasks(feature_name):
-    """Tareas `- [ ]` abiertas en specs/<feature>/tasks.md."""
-    path = os.path.join("specs", feature_name, "tasks.md")
-    if not os.path.isfile(path):
-        return []
+    """Tareas `- [ ]` abiertas en specs/<feature>/tasks*.md, como (archivo, línea).
+
+    `tasks*.md` y no `tasks.md` a secas: una feature partida en fases lleva un
+    archivo por fase (`tasks-fase1.md`, `tasks-fase2.md`…). Si el gate mirara
+    solo `tasks.md`, una feature por fases se cerraría con todo sin marcar.
+    """
+    folder = os.path.join("specs", feature_name)
     try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
-            lines = fh.read().splitlines()
+        names = sorted(n for n in os.listdir(folder)
+                       if n.startswith("tasks") and n.endswith(".md"))
     except OSError:
         return []
-    return [l.strip() for l in lines if l.strip().startswith(("- [ ]", "* [ ]"))]
+    abiertas = []
+    for name in names:
+        try:
+            with open(os.path.join(folder, name), encoding="utf-8", errors="replace") as fh:
+                lines = fh.read().splitlines()
+        except OSError:
+            continue
+        abiertas += [(name, l.strip()) for l in lines
+                     if l.strip().startswith(("- [ ]", "* [ ]"))]
+    return abiertas
 
 
 def main():
@@ -247,7 +259,7 @@ def main():
                 + [
                     "",
                     "  Estás escribiendo código contra una spec que no existe.",
-                    "  Creá la trinidad (spec.md · plan.md · tasks.md) o corregí el nombre.",
+                    "  Creá la trinidad (spec.md · plan.md · tasks*.md) o corregí el nombre.",
                 ],
             ))
 
@@ -261,11 +273,11 @@ def main():
             if abiertas:
                 problems.append((
                     "«%s» está marcada «done» con tareas sin cerrar." % named(f),
-                    ["· %s" % t for t in abiertas[:5]]
+                    ["· %s: %s" % t for t in abiertas[:5]]
                     + (["· … y %d más" % (len(abiertas) - 5)] if len(abiertas) > 5 else [])
                     + [
                         "",
-                        "  En specs/%s/tasks.md. El manifiesto declara" % (f.get("name") or "?"),
+                        "  En specs/%s/. El manifiesto declara" % (f.get("name") or "?"),
                         "  require_tests_to_close: cada task cierra con su test en verde.",
                     ],
                 ))

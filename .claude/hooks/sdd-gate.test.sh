@@ -164,6 +164,38 @@ manifest '[{"id":1,"name":"001-pagos","sdd":true,"status":"in_progress"}]'
 echo "x" > src/app.js; git add -A 2>/dev/null
 check "in_progress sin specs/ + código → BLOQUEA" 1
 
+# ── Features por fases: un tasks-faseN.md por fase ───────────────────────────
+# Si el gate mirara solo tasks.md, una feature partida en fases se cerraría con
+# todas las casillas abiertas: el archivo que revisa ni siquiera existe.
+fase() { # $1 = feature, $2 = número de fase, $3 = contenido
+  mkdir -p "specs/$1"
+  printf '%s\n' "$3" > "specs/$1/tasks-fase$2.md"
+}
+
+reset_repo
+manifest '[{"id":1,"name":"001-pagos","sdd":true,"status":"done"}]'
+fase "001-pagos" 1 "- [x] T1: hecho"
+fase "001-pagos" 2 "- [ ] T2: falta esto"
+git add -A 2>/dev/null
+check "done por fases con una fase abierta → BLOQUEA" 1
+grep -q "tasks-fase2.md" "$TMP/out" \
+  && { PASS=$((PASS+1)); echo "  ✅ el mensaje nombra el archivo de la fase abierta"; } \
+  || { FAIL=$((FAIL+1)); echo "  ❌ el mensaje no dice en qué fase quedó la tarea"; }
+
+reset_repo
+manifest '[{"id":1,"name":"001-pagos","sdd":true,"status":"done"}]'
+fase "001-pagos" 1 "- [x] T1: hecho"
+fase "001-pagos" 2 "- [x] T2: hecho"
+git add -A 2>/dev/null
+check "done por fases con todas cerradas → pasa" 0
+
+# La evidencia va en líneas indentadas bajo la tarea; no son casillas.
+reset_repo
+manifest '[{"id":1,"name":"001-pagos","sdd":true,"status":"done"}]'
+spec_dir "001-pagos" "$(printf -- '- [x] **T1:** modelo\n  - _Hecho:_ test en verde\n  - _Pendiente:_ —')"
+git add -A 2>/dev/null
+check "líneas de evidencia bajo una tarea cerrada → pasa" 0
+
 # ── Manda el manifiesto, no el hook ──────────────────────────────────────────
 reset_repo
 manifest '[{"id":1,"name":"001-pagos","sdd":true,"status":"spec_ready"}]' \

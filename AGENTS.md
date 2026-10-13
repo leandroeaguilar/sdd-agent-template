@@ -27,7 +27,8 @@
 
 - `feature_list.json` — Manifiesto de features con estado (`pending` / `spec_ready` / `in_progress` / `done` / `blocked`). Punto de entrada para saber qué construir.
 - `docs/product/` — PRD y decisiones de producto (snapshot exportado del vault dueño; **no editarlo acá** — los cambios de producto se deciden en el vault y se re-exportan).
-- `specs/<feature>/` — Trinidad Kiro-style: `spec.md` (el QUÉ con requisitos EARS `R1..Rn`) → `plan.md` (el CÓMO técnico) → `tasks.md` (pasos `T1..Tn` con tests asociados).
+- `specs/<feature>/` — Trinidad Kiro-style: `spec.md` (el QUÉ con requisitos EARS `R1..Rn`) → `plan.md` (el CÓMO técnico) → `tasks.md` (pasos `T1..Tn` con tests asociados y evidencia `_Hecho:_`/`_Pendiente:_`). Una feature grande se parte en **fases** declaradas en `plan.md`, con un `tasks-faseN.md` por fase en lugar de `tasks.md`.
+- **La estructura de tareas de este repo es `specs/`, y manda.** Si una skill, un prompt o un flujo externo propone otra carpeta o formato para planificar trabajo (`odd/`, `tasks/`, `.plan/`…), adaptalo a `specs/<feature>/` y a `feature_list.json`: lo que se planifica fuera de ahí no pasa por la puerta de aprobación ni lo ve el gate.
 - `.claude/agents/` — Subagentes especializados: `@implementer` (ejecución quirúrgica en contexto limpio) y `@reviewer` (auditor adversarial que valida la trazabilidad `R<n>` ↔ test).
 - `docs/adr/` — Decisiones técnicas. Si tomás una decisión de arquitectura, registrala.
 - `docs/BITACORA.md` — Handoff entre sesiones de agente: al cerrar una sesión con trabajo hecho, agregá tu entrada al final.
@@ -49,7 +50,7 @@ pending ──▶ [Redactar spec] ──▶ spec_ready ──▶ ⏸ HUMANO APRU
 | `in_progress → done` | El humano, tras el `🟢` del `@reviewer` |
 | `→ blocked` | Cualquiera, en cualquier momento |
 
-Los subagentes **nunca escriben `status`**: reportan y el humano decide. El `@implementer` sí marca `[x]` en `tasks.md` (eso es progreso verificable, no decisión).
+Los subagentes **nunca escriben `status`**: reportan y el humano decide. El `@implementer` sí marca `[x]` en su archivo de tareas (eso es progreso verificable, no decisión). Con fases, el avance se lee ahí —una fase está cerrada cuando su `tasks-faseN.md` no tiene `[ ]`—: **las fases no tienen `status` propio en el manifiesto**, y la feature sigue en `in_progress` hasta que cierran todas.
 
 > **La aprobación se commitea sola.** Pasar una feature a `in_progress` va en su propio commit, *antes* del código (`git commit feature_list.json -m "aprueba: <feature>"`). Si entran juntos, el commit se aprueba a sí mismo y no queda registro de que alguien haya decidido nada — el hook no puede saber quién editó el manifiesto, pero sí puede exigir que la decisión quede fechada aparte. Lo hace cumplir `.claude/hooks/sdd-gate.sh` desde el `pre-commit`.
 

@@ -4,7 +4,7 @@ title: "Spec 000 — [nombre de la feature]"
 description: "[Una oración: qué feature especifica este documento.]"
 generated:
   by: process:claude-code
-  at: 2026-08-13T00:00:00Z
+  at: 2026-10-13T00:00:00Z
 ---
 
 # Spec 000 — [nombre de la feature]
@@ -26,8 +26,18 @@ generated:
 - **R3 (Basado en Estado):** MIENTRAS [estado operativo activo], el sistema DEBE [respuesta continua].
 - **R4 (Manejo de Excepción / Error):** SI [condición de fallo o dato inválido], ENTONCES el sistema DEBE [respuesta de contingencia].
 
+## Preguntas abiertas
+> Decisiones de **negocio o producto** que el agente no puede tomar solo. Una pregunta escrita acá es un freno: la spec no pasa a `spec_ready` hasta que el humano la responda. Las decisiones puramente técnicas no van acá — se resuelven y se justifican en `plan.md`.
+
+- [Pregunta concreta, con las opciones y qué cambia según la respuesta. Si no hay ninguna: «Ninguna».]
+
 ## Fuera de alcance
 [Qué NO incluye esta feature en esta iteración — barrera explícita para evitar que los agentes alucinen funcionalidades de más.]
 
 ## Verificación de cierre
 [La prueba o comando end-to-end que demuestra que la feature cumple los requisitos R1..Rn. Sin esto la spec no está completa.]
+
+> Que la suite esté en verde no es esta verificación: acá se ejercita el **camino real**. Al escribirla, dejá dicho:
+> - **Contra qué corre.** El motor real (la base, el servicio, el navegador) o un sustituto (SQLite en memoria, mocks). Si el requisito pide el real y solo se puede el sustituto, eso se declara como *diferido*, no como verificado.
+> - **Un caso de error.** Al menos un `R<n>` de excepción o regla de negocio central, no solo el camino feliz.
+> - **Qué deja atrás.** Los datos de prueba que inserta y cómo se limpian.
