@@ -9,6 +9,8 @@
 #
 # Qué bloquea y qué no (deliberado):
 #   secret-scan  → BLOQUEA. Un secreto en una rama publicada ya se filtró.
+#   tests del gate SDD → BLOQUEAN. Prueban el hook (sdd-gate.test.sh), no el
+#                  PR: un gate roto deja pasar lo que debía frenar y no avisa.
 #   lint/tests   → BLOQUEAN una vez cableados en el kickoff (paso 6 del README).
 #                  Hasta entonces el paso avisa en el resumen en vez de fallar:
 #                  un repo recién nacido no tiene suite que correr.
@@ -64,6 +66,18 @@ jobs:
           BASE: ${{ steps.range.outputs.base }}
           HEAD: ${{ steps.range.outputs.head }}
         run: bash .claude/hooks/secret-scan.sh --range "$BASE" "$HEAD"
+
+      - name: Tests del gate SDD (bloquea)
+        run: |
+          # El gate es la puerta de aprobación: un PR que lo rompa no puede salir
+          # en verde. Sin este paso los tests solo corrían si alguien se acordaba.
+          # El banco sale 0 si no encuentra python ("no corre"), así que acá se
+          # exige: un check verde que no corrió nada es peor que uno rojo.
+          if ! command -v python >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
+            echo "::error::falta python en el runner: los tests del gate SDD no pueden correr"
+            exit 1
+          fi
+          bash .claude/hooks/sdd-gate.test.sh
 
       # ── STACK ────────────────────────────────────────────────────────────────
       # Cablear en el kickoff (paso 6 del README), junto con .githooks/pre-commit.
