@@ -26,8 +26,9 @@ tu-proyecto/
 │   └── BITACORA.md           handoff obligatorio entre sesiones (merge=union para ramas paralelas)
 │
 ├── .claude/
-│   ├── agents/               @implementer (construye en hilo limpio) y @reviewer (audita sin editar)
+│   ├── agents/               @spec-reader y @spec-critic (revisan la spec), @tester (tests en rojo), @implementer (construye) y @reviewer (audita sin editar)
 │   ├── hooks/                sdd-gate (+ 28 tests), security-guard, secret-scan, agent-diary, search-sessions
+│   ├── evals/                casos con trampa sembrada para probar el prompt del @reviewer
 │   └── settings.json         12 reglas deny + hooks de sesión (PreToolUse, PostToolUse, Stop)
 ├── .githooks/
 │   └── pre-commit            el gate universal: rama → flujo SDD → secretos → (tu lint y tus tests)
@@ -104,8 +105,9 @@ Conviene tener claro qué vas a construir antes de empezar: la plantilla gobiern
 4. **Inicializar tu stack y cablear lint/tests en tres lugares:**
    - `.githooks/pre-commit` (al final del archivo)
    - `.github/workflows/verify.yml`
-   - la línea **Suite completa (cierre)** de `AGENTS.md` (de donde la leen `@implementer` y `@reviewer`).
+   - la línea **Suite completa (cierre)** de `AGENTS.md` (de donde la leen `@tester`, `@implementer` y `@reviewer`).
    *(Hasta que lo hagas, los únicos chequeos automáticos son el gate SDD y el de secretos).*
+   Si tu stack las tiene, declará también en `AGENTS.md` la librería de **property-based testing** y el comando de **mutación**. Son opcionales: sin ellas el flujo sigue y el `@reviewer` las lista como *diferido*.
 5. **Definir la primera feature en [`feature_list.json`](feature_list.json):** poné el nombre real del proyecto y reemplazá `000-ejemplo` por tu primera feature en estado `"pending"`.
 6. **Abrir tu agente en la carpeta del repo** y pedirle la spec de esa feature: te va a entrevistar si hay dudas de producto, escribir `specs/001-<nombre>/`, pasar el estado a `spec_ready` y frenar a esperar tu aprobación.
 
@@ -120,14 +122,17 @@ Conviene tener claro qué vas a construir antes de empezar: la plantilla gobiern
 Cada feature vive en `feature_list.json` con un estado, y en `specs/<feature>/` con tres documentos: `spec.md` (qué y por qué), `plan.md` (cómo) y `tasks.md` (los pasos).
 
 ```text
-pending ─▶ el agente escribe la spec ─▶ spec_ready ─▶ ⏸ VOS APROBÁS ─▶ in_progress ─▶ @implementer ─▶ @reviewer ─▶ done
+pending ─▶ el agente escribe la spec ─▶ @spec-reader + @spec-critic ─▶ spec_ready ─▶ ⏸ VOS APROBÁS ─▶ in_progress ─▶ @tester ─▶ @implementer ─▶ mutación ─▶ @reviewer ─▶ done
 ```
 
-1. **El agente escribe la spec** y deja la feature en `spec_ready`. Las decisiones técnicas las resuelve y las justifica; las de producto te las pregunta.
-2. **Vos la leés y aprobás**, pasando el estado a `in_progress` en su propio commit.
-3. **`@implementer` construye** tarea por tarea, en un hilo limpio, con un test por requisito.
-4. **`@reviewer` audita** el cambio contra la spec, sin haber escrito nada, y aprueba o devuelve correcciones.
-5. **Vos commiteás y cerrás** la feature (`done`).
+1. **El agente escribe la spec.** Las decisiones técnicas las resuelve y las justifica; las de producto te las pregunta.
+2. **Dos subagentes la leen sin haber visto la conversación.** `@spec-reader` la parafrasea (lo que tuvo que suponer es lo que estaba ambiguo) y `@spec-critic` la ataca: requisitos no testeables, bordes faltantes, contradicciones. El agente corrige y recién ahí deja la feature en `spec_ready`.
+3. **Vos la leés y aprobás**, pasando el estado a `in_progress` en su propio commit.
+4. **`@tester` escribe los tests primero**, desde la spec y sin saber cómo se va a implementar: uno por requisito y una propiedad por invariante, todos en rojo.
+5. **`@implementer` construye** tarea por tarea, en un hilo limpio, hasta ponerlos en verde. No puede tocar esos tests.
+6. **Mutación** (si tu stack tiene la herramienta cableada): se rompe el código de a un cambio para comprobar que algún test se entera.
+7. **`@reviewer` audita** el cambio contra la spec, sin haber escrito nada, y aprueba o devuelve correcciones.
+8. **Vos commiteás y cerrás** la feature (`done`).
 
 ### Lo que sostiene ese flujo
 
@@ -138,9 +143,12 @@ pending ─▶ el agente escribe la spec ─▶ spec_ready ─▶ ⏸ VOS APROB�
   ```
   Si la aprobación entra en el mismo commit que el código, el commit se aprueba a sí mismo: `sdd-gate` lo frena y te muestra el comando exacto.
 - **Los requisitos se numeran** (`R1`, `R2`…) usando notación EARS y cada tarea dice cuál cubre. El `@reviewer` lee el test de cada requisito y verifica si fallaría en caso de romperse; que la suite esté en verde no le alcanza.
+- **Los invariantes también se numeran** (`P1`, `P2`…): lo que vale para cualquier entrada, no para un ejemplo. El `@tester` los convierte en *property-based tests* con la librería que declare `AGENTS.md`.
+- **Quien escribe el código no escribe los tests de los requisitos, ni los puede aflojar.** El `@tester` deja el hash de cada archivo de test en su tarea y el `@reviewer` los recalcula: un test editado, borrado o salteado después es un rechazo.
 - **Cada tarea deja evidencia.** `_Hecho:_` registra qué comando se corrió y qué devolvió; `_Pendiente:_` deja escrito qué quedó sin hacer y por qué.
 - **Las features grandes se parten en fases.** Se declaran en `plan.md` (qué entrega cada una, de cuál depende, qué archivos toca) y cada fase lleva su `tasks-faseN.md`. Las que no dependen entre sí ni comparten archivos se pueden construir en paralelo, un `@implementer` por fase. La aprobación humana sigue siendo una sola, sobre la feature entera.
 - **La verificación de cierre prueba el camino real:** contra qué corrió, al menos un caso de error y los datos de prueba limpios. Si solo se pudo probar contra un sustituto, queda como diferido, no como verificado.
+- **Hay más testing si tu stack lo justifica.** Fuzzing, tests de contrato entre fases y evals de los subagentes están en [`docs/testing-opcional.md`](docs/testing-opcional.md): opcionales, se activan por feature.
 - **No todo necesita spec.** Una feature con `"sdd": false` no pasa por la puerta: sirve para un arreglo chico. Lo que vale la pena pasar siempre por spec es lo que sale caro si sale mal: dinero, permisos, datos de usuarios.
 
 ---
@@ -151,7 +159,9 @@ pending ─▶ el agente escribe la spec ─▶ spec_ready ─▶ ⏸ VOS APROB�
 |---|---|
 | Empieza a programar algo que no le aprobaste | La spec se escribe primero y `sdd-gate` rechaza cualquier commit de código hasta que la apruebes en un commit propio |
 | Construye de más, o algo distinto de lo que pediste | Requisitos numerados (`R1..Rn`), sección de fuera de alcance y un `@reviewer` que rechaza lo que nadie pidió |
-| Escribe el código y los tests, y valida sus propios malentendidos | Dos subagentes separados: `@implementer` construye y `@reviewer` audita sin editar |
+| Escribe una spec que solo se entiende con la conversación en la cabeza | `@spec-reader` y `@spec-critic` la leen en contexto fresco antes de que te llegue para aprobar |
+| Escribe el código y los tests, y valida sus propios malentendidos | Tres subagentes separados: `@tester` escribe los tests desde la spec, `@implementer` construye sin poder tocarlos y `@reviewer` audita sin editar |
+| Deja tests en verde que no detectarían un bug | Mutation testing al cierre (si el stack lo tiene cableado): cada mutante que sobrevive se mata o se justifica |
 | Dice «listo» sin haber probado nada | Cada tarea exige evidencia (`_Hecho:_`) y el cierre exige probar el camino real |
 | Corre un comando peligroso: lee `.env`, saca datos con `curl`, hace `git push --force` | 12 reglas `deny` en `settings.json` + `security-guard` que inspecciona cada comando Bash/Read **antes** de ejecutarlo |
 | Commitea un secreto | `secret-scan.sh` bloquea el commit local y vuelve a correr en cada Pull Request (`verify.yml`) |
@@ -223,13 +233,16 @@ Cada worktree tiene su propio checkout y su propio `.repo-meta/`. `docs/BITACORA
 - **Una feature que nunca entra a `feature_list.json` no está protegida por SDD.** El gate reacciona a `spec_ready` e `in_progress`; si nadie registra la feature, no hay puerta.
 - **El manifiesto lo puede editar un agente.** Lo que `sdd-gate` garantiza es que la transición a `in_progress` quede aislada y fechada en su propio commit sin código, no quién tipeó el comando.
 - **El `@reviewer` es de solo lectura por instrucción**, no por restricción de sistema de archivos.
+- **La intangibilidad de los tests del `@tester` la verifica el `@reviewer`, no un hook.** Los hashes viven en el archivo de tareas, que un agente también puede editar: frena el descuido, no la mala fe.
+- **Mutación y property-based testing dependen de tu stack.** Sin comando o librería declarados en `AGENTS.md` quedan como *diferido* en el veredicto del `@reviewer`; el flujo no se bloquea, pero tampoco los tenés.
+- **De los prompts de los subagentes, solo el del `@reviewer` tiene casos de prueba** ([`.claude/evals/`](.claude/evals/README.md)), y hay que correrlos a mano. Que `@spec-critic` o `@tester` hagan lo que dicen sus archivos se comprueba usándolos.
 - **Sin tu suite de tests cableada (paso 4 del kickoff), `verify` da verde validando solo specs y secretos.**
 
 ---
 
 ## Ideas en las que se apoya
 
-El estándar [AGENTS.md](https://agents.md), el flujo `spec → plan → tasks` de [github/spec-kit](https://github.com/github/spec-kit), la notación EARS para requisitos y el frontmatter [OKF v0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog) para la documentación.
+El estándar [AGENTS.md](https://agents.md), el flujo `spec → plan → tasks` de [github/spec-kit](https://github.com/github/spec-kit), la notación EARS para requisitos, la revisión de specs en contexto fresco de [google/elephant-goldfish-model](https://github.com/google/elephant-goldfish-model) y el frontmatter [OKF v0.2](https://github.com/GoogleCloudPlatform/knowledge-catalog) para la documentación.
 
 ## Licencia
 
