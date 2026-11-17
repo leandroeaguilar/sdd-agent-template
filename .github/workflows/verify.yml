@@ -1,5 +1,9 @@
-# Verificación del repo en cada PR — el mismo gate que corre en tu máquina,
-# pero del lado del servidor.
+# Verificación del repo en cada PR y en cada push a la rama principal — el
+# mismo gate que corre en tu máquina, pero del lado del servidor.
+#
+# Por qué también en push: en REPO_MODE=solo no hay PRs, se commitea directo a
+# main. Solo con `pull_request` este workflow no corría nunca en el modo por
+# defecto, y el badge del README mostraba la última corrida manual.
 #
 # Por qué existe: los hooks de .githooks/ corren en el clon de quien commitea,
 # y solo si esa persona corrió `bash setup.sh` (core.hooksPath es config LOCAL:
@@ -11,7 +15,7 @@
 #   secret-scan  → BLOQUEA. Un secreto en una rama publicada ya se filtró.
 #   tests del gate SDD → BLOQUEAN. Prueban el hook (sdd-gate.test.sh), no el
 #                  PR: un gate roto deja pasar lo que debía frenar y no avisa.
-#   lint/tests   → BLOQUEAN una vez cableados en el kickoff (paso 6 del README).
+#   lint/tests   → BLOQUEAN una vez cableados en el kickoff (README, «Cablear lint y tests»).
 #                  Hasta entonces el paso avisa en el resumen en vez de fallar:
 #                  un repo recién nacido no tiene suite que correr.
 #   bitácora     → informa. El handoff es una convención de agentes, no algo
@@ -24,6 +28,10 @@ name: verify
 
 on:
   pull_request:
+  push:
+    # La rama principal de repo.conf. Un trigger no puede leer ese archivo:
+    # si tu rama principal no se llama main, cambiala acá también.
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -41,19 +49,28 @@ jobs:
         with:
           fetch-depth: 0   # los verificadores comparan contra la base del PR
 
-      - name: Rango del PR
+      - name: Rango a verificar
         id: range
         env:
           # Por `env:` y no interpolado en el script: hardening estándar de
           # Actions (un título de rama malicioso no se ejecuta como shell).
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
           # OJO con `[ cond ] && x=y`: los `run:` corren con `bash -eo pipefail`,
           # así que cuando la condición es FALSA la lista devuelve 1 y el paso
           # falla — justo en el caso normal. Va con if/then, no con `&&`.
           BASE="$PR_BASE"; HEAD="$PR_HEAD"
-          # workflow_dispatch: sin payload de PR, se verifica el último commit.
+          # push: desde el commit que la rama tenía antes del push, para cubrir
+          # todos los commits que trae. Si `before` son 40 ceros (rama nueva) o
+          # quedó fuera del historial (force-push), se cae al caso de abajo.
+          if [ -z "$BASE" ] && [ -n "$PUSH_BEFORE" ] \
+             && [ "$PUSH_BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+            BASE="$PUSH_BEFORE"
+          fi
+          # workflow_dispatch (o push sin `before` usable): el último commit.
           if [ -z "$BASE" ]; then BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"; fi
           if [ -z "$HEAD" ]; then HEAD="$(git rev-parse HEAD)"; fi
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
@@ -80,7 +97,7 @@ jobs:
           bash .claude/hooks/sdd-gate.test.sh
 
       # ── STACK ────────────────────────────────────────────────────────────────
-      # Cablear en el kickoff (paso 6 del README), junto con .githooks/pre-commit.
+      # Cablear en el kickoff (README, «Cablear lint y tests»), junto con .githooks/pre-commit.
       # Descomentar el setup del lenguaje y reemplazar los comandos de abajo.
       #
       # - uses: actions/setup-node@v4
@@ -97,9 +114,9 @@ jobs:
           # Mientras no haya stack, el paso avisa en vez de fallar.
           {
             echo "### Lint y tests"
-            echo "⚠️ Sin cablear todavía — este PR **no corrió ninguna prueba**."
+            echo "⚠️ Sin cablear todavía — este cambio **no corrió ninguna prueba**."
             echo "Cablealos en \`.github/workflows/verify.yml\` y en \`.githooks/pre-commit\`"
-            echo "(paso 6 del kickoff). Hasta entonces el único gate real es el secret-scan."
+            echo "(README, kickoff «Cablear lint y tests»). Hasta entonces solo bloquean el secret-scan y los tests del gate SDD."
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ── INFORMATIVO ──────────────────────────────────────────────────────────
@@ -111,15 +128,23 @@ jobs:
         run: |
           # El mismo gate del pre-commit, en modo --range. Informa en vez de
           # bloquear (ver cabecera). Inerte si el repo no tiene feature_list.json.
-          if OUT="$(bash .claude/hooks/sdd-gate.sh --range "$BASE" "$HEAD" 2>&1)"; then
-            if [ -n "$OUT" ]; then echo "$OUT"; fi
-          else
-            {
-              echo "### Flujo SDD"
-              echo '```'
-              echo "$OUT"
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
+          #
+          # Commit por commit, no el rango entero: el gate razona como el
+          # pre-commit, que ve un commit por vez. Con el rango completo, un PR
+          # o un push que trae el commit de aprobación y después el de código
+          # —justo el flujo correcto— se leía como «aprobación y código en el
+          # mismo commit». Los merges y el commit raíz se saltean: no tienen un
+          # único padre contra el cual comparar.
+          REPORTE=""
+          for c in $(git rev-list --reverse --no-merges "$BASE..$HEAD"); do
+            if ! git rev-parse -q --verify "$c^" >/dev/null; then continue; fi
+            if ! OUT="$(bash .claude/hooks/sdd-gate.sh --range "$c^" "$c" 2>&1)"; then
+              REPORTE="$REPORTE$(printf '\n#### %s\n```\n%s\n```' "$(git log -1 --format='%h %s' "$c")" "$OUT")"
+            fi
+          done
+          if [ -n "$REPORTE" ]; then
+            { echo "### Flujo SDD"; printf '%s\n' "$REPORTE"; } >> "$GITHUB_STEP_SUMMARY"
+            echo "$REPORTE"
           fi
 
       - name: Handoff en la bitácora
@@ -136,7 +161,7 @@ jobs:
           elif echo "$CHANGED" | grep -qE '^(src|specs)/'; then
             {
               echo "### Bitácora"
-              echo "Este PR toca \`src/\` o \`specs/\` pero no agrega entrada en"
+              echo "Este cambio toca \`src/\` o \`specs/\` pero no agrega entrada en"
               echo "\`docs/BITACORA.md\`. Si lo hizo un agente, falta su handoff."
             } >> "$GITHUB_STEP_SUMMARY"
           fi

@@ -43,7 +43,22 @@ else
 fi
 
 # 3. Normalizar fin de línea de los hooks (crítico en Windows)
-git add --renormalize . 2>/dev/null || true
+# Solo los que el index guarda con CRLF: es lo único que rompe un hook bash.
+# Antes era `git add --renormalize .` sobre todo el repo, que además dejaba en
+# stage cualquier cambio en curso — y este script se corre en clones con trabajo
+# a medio hacer. Así toca únicamente lo que está mal, y avisa qué tocó.
+CRLF_EN_INDEX="$(git ls-files --eol -- .githooks .claude/hooks setup.sh '*.sh' 2>/dev/null \
+  | awk -F'\t' '$1 ~ /^i\/(crlf|mixed)/ {print $2}' | sort -u)"
+if [ -n "$CRLF_EN_INDEX" ]; then
+  printf '%s\n' "$CRLF_EN_INDEX" | while IFS= read -r f; do
+    git add --renormalize -- "$f" 2>/dev/null || true
+  done
+  echo "[ok] fin de línea corregido a LF en el index de:"
+  printf '%s\n' "$CRLF_EN_INDEX" | sed 's/^/       /'
+  echo "     Quedó en stage: commitealo («chore: hooks con LF»)."
+else
+  echo "[ok] hooks con fin de línea LF"
+fi
 
 # 4. Requisitos del security-guard
 command -v bash >/dev/null || echo "[AVISO] falta bash (Git Bash en Windows)"
@@ -55,10 +70,10 @@ fi
 
 # 4b. Flujo spec-driven (opcional): avisar si quedó el seed sin personalizar.
 # No es un error —un repo puede no usar SDD— pero un manifiesto con el nombre
-# de la plantilla adentro es señal de que el paso 7 del kickoff quedó a medias.
+# de la plantilla adentro es señal de que el paso «Registrar la primera feature» del kickoff quedó a medias.
 if [ -f feature_list.json ]; then
   if grep -q '"nombre-del-proyecto"' feature_list.json 2>/dev/null; then
-    echo "[i] feature_list.json todavía dice «nombre-del-proyecto» (kickoff paso 7)."
+    echo "[i] feature_list.json todavía dice «nombre-del-proyecto» (README, kickoff «Registrar la primera feature»)."
     echo "    Poné el nombre real y reemplazá la feature 000-ejemplo por la tuya."
     echo "    Si este repo no usa el flujo spec-driven, borralo: queda todo inerte."
   else
