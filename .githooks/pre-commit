@@ -63,7 +63,7 @@ bash "$ROOT/.claude/hooks/sdd-gate.sh" || exit 1
 bash "$ROOT/.claude/hooks/secret-scan.sh" || exit 1
 
 # ── Lint y tests del stack ───────────────────────────────────────────────────
-# Cablear en el kickoff (paso 6), mismos comandos que .github/workflows/verify.yml.
+# Cablear en el kickoff (README, «Cablear lint y tests»), mismos comandos que .github/workflows/verify.yml.
 # Van al final a propósito: son lo más lento del hook.
 # npm run lint || exit 1
 # npm test     || exit 1

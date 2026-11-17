@@ -117,7 +117,7 @@ Una vez publicado, **ya se filtró**: borrarlo no lo borra del historial, y hay 
 
 *(Borrá lo que no aplique.)*
 
-- **¿Corre algo de verdad?** Hasta cablear lint y tests (kickoff paso 7), `verify` queda **verde sin correr una sola prueba**.
+- **¿Corre algo de verdad?** Hasta cablear lint y tests (README, kickoff «Cablear lint y tests»), `verify` queda **verde sin correr una sola prueba**.
 - **¿Bloquea?** Solo si el plan permite *"Require status checks to pass"* y está activado. En plan Free con repo privado, **no**: es señal, y un PR en rojo se mergea igual.
 - **¿Se dispara solo?** Debería, con `pull_request`. Si no arranca, se puede lanzar a mano desde *Actions* → *verify* → *Run workflow*.
 
